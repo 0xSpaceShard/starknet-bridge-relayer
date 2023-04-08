@@ -1,0 +1,69 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop, simulation/e2e]
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.19.0'
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Source env
+        run: cp example.env .env
+
+      - name: Generate solidity types
+        run: yarn typechain
+
+      - name: Run unit tests
+        run: yarn test
+  e2e:
+    needs: unittest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.19.0'
+
+      - name: build docker compose
+        working-directory: e2e
+        run: make e2e-build
+
+      - name: start docker compose
+        working-directory: e2e
+        run: make e2e-up && sleep 10
+
+      - name: Restore MongoDB dump data
+        working-directory: e2e
+        run: make e2e-setup
+
+      - name: Install yarn
+        run: npm install -g yarn && yarn && yarn typechain
+      
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Log containers
+        run: docker ps --all
+
+      - name: Run e2e tests
+        working-directory: e2e
+        run: make e2e-test
+
+      - name: Run e2e tests
+        working-directory: e2e
+        run: make e2e-down

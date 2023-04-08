@@ -1,7 +1,7 @@
 include ./e2e.env
 
 e2e-up: e2e-down
-	docker compose -f docker-compose-e2e.yaml up
+	docker compose -f docker-compose-e2e.yaml up -d
 
 e2e-down:
 	docker compose -f docker-compose-e2e.yaml down
