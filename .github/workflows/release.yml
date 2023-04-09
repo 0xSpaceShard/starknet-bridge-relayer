@@ -1,6 +1,9 @@
 name: release
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - workflow/ci
   # workflow_run:
   #   workflows:
   #     - tests
@@ -26,6 +29,11 @@ jobs:
         with:
           node-version: '16.19.0'
       
+      - name: Init Git user
+        run: |
+          git config --global user.email "127413534+shardAstronaut@users.noreply.github.com"
+          git config --global user.name "shardAstronaut"
+
       - name: Release
         run: yarn release --ci
         env:
