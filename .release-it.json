@@ -1,0 +1,12 @@
+{
+  "git": {
+    "requireBranch": "workflow/ci",
+    "commitMessage": "chore: release v${version}"
+  },
+  "github": {
+    "release": true
+  },
+  "hooks": {
+    "after:bump": "npx auto-changelog -p"
+  }
+}
