@@ -1,8 +1,9 @@
-name: Release
+name: release
 
 on:
   workflow_run:
-    workflows: ["ci"]
+    workflows:
+      - tests
     branches: [main, simulation/e2e]
     types: 
       - completed
