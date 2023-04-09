@@ -1,17 +1,13 @@
 name: release
 
 on:
-  push:
+  workflow_run:
     branches:
       - workflow/ci
-  # workflow_run:
-  #   workflows:
-  #     - tests
-  #   branches:
-  #     [main, simulation/e2e]
-  #   types: 
-  #     - completed
-  
+    workflows:
+      - tests
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -19,7 +15,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -38,14 +34,3 @@ jobs:
         run: yarn release --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Build Changelog
-      #   id: github_release
-      #   uses: mikepenz/release-changelog-builder-action@v3
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Create Release
-      #   uses: mikepenz/action-gh-release@v0.2.0-a03
-      #   with:
-      #     body: ${{steps.github_release.outputs.changelog}}
