@@ -1,0 +1,72 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@4.7
+
+jobs:
+  # unittest-test:
+  #   docker:
+  #     - image: cimg/node:16.13
+  #   working_directory: ~/starknet-bridge-relayer/
+  #   steps:
+  #     - checkout
+  #     - node/install-packages:
+  #         pkg-manager: yarn
+
+  #     - run:
+  #         name: Source env
+  #         command: cp example.env .env
+
+  #     - run:
+  #         name: Generate solidity types
+  #         command: yarn typechain
+
+  #     - run:
+  #         name: Run unit tests
+  #         command: yarn test
+
+  e2e-test:
+    docker:
+      - image: cimg/node:16.13
+
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Install docker compose
+          command: |
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -SL https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      - run:
+          name: Test the docker compose installation 
+          command: docker compose version
+      - setup_remote_docker
+      - run:
+          name: build docker compose
+          command: cd e2e && make e2e-build
+      - run:
+          name: start docker compose
+          command: cd e2e && make e2e-up && sleep 10
+      - run:
+          name: start docker compose
+          command: cd e2e && make e2e-setup && sleep 5
+      - run:
+          name: Generate typechain
+          command: yarn typechain
+      - run:
+          name: Run e2e tests
+          command: cd e2e && make e2e-test
+      - run:
+          name: Stop containers
+          command: cd e2e && make e2e-down
+  # release:
+
+workflows:
+  tests:
+    jobs:
+      # - unittest-test
+      - e2e-test
+          # requires:
+          #     - unittest-test
