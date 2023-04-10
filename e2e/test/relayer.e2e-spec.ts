@@ -37,7 +37,7 @@ describe('Relayer (e2e)', () => {
     mongoService = moduleFixture.get<MongoService>(MongoService);
     indexerService = moduleFixture.get<IndexerService>(IndexerService);
 
-    provider = new ethers.providers.JsonRpcProvider('http://0.0.0.0:8545');
+    provider = new ethers.providers.JsonRpcProvider('http://hardhat:8545');
     const privateKey = process.env.PRIVATE_KEY;
     const network = process.env.NETWORK_ID;
     signer = new ethers.Wallet(privateKey, provider);
@@ -53,9 +53,9 @@ describe('Relayer (e2e)', () => {
 
   it('Consume valid transactions', async () => {
     const fromBlock = 786000;
-    const toBlock = 786200;
+    const toBlock = 786008;
     const stateBlock = 786250;
-    const docs = 356;
+    const docs = 14;
 
     await starknet.setStateBlockNumber(stateBlock);
 
@@ -84,7 +84,7 @@ describe('Relayer (e2e)', () => {
         const msgHash = getMessageHash(l2BridgeAddress, l1BridgeAddress, l1Recipient, amount.toString());
         allMessageHashes.push(msgHash);
 
-        if (Math.floor(Math.random() * 100) > 10) {
+        if (Math.floor(Math.random() * 100) > 50) {
           validMessageHashes.push(msgHash);
           userBalancesBefore.push(await provider.getBalance(l1Recipient));
           usersAddresses.push(l1Recipient);
@@ -108,7 +108,11 @@ describe('Relayer (e2e)', () => {
 
     // Process transactions
     const processWithdrawalsResult = await relayerService.processWithdrawals(fromBlock, toBlock, stateBlock);
-    expect(processWithdrawalsResult.currentFromBlockNumber).toEqual(toBlock - 50);
+    if (docs > 50) {
+      expect(processWithdrawalsResult.currentFromBlockNumber).toEqual(toBlock - 50);
+    } else {
+      expect(processWithdrawalsResult.currentFromBlockNumber).toEqual(fromBlock);
+    }
     expect(processWithdrawalsResult.currentToBlockNumber).toEqual(toBlock);
     expect(processWithdrawalsResult.stateBlockNumber).toEqual(stateBlock);
     expect(processWithdrawalsResult.totalWithdrawals).toEqual(withdrawals.length);

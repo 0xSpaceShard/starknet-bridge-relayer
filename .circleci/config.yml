@@ -4,26 +4,26 @@ orbs:
   node: circleci/node@4.7
 
 jobs:
-  # unittest-test:
-  #   docker:
-  #     - image: cimg/node:16.13
-  #   working_directory: ~/starknet-bridge-relayer/
-  #   steps:
-  #     - checkout
-  #     - node/install-packages:
-  #         pkg-manager: yarn
+  unittest-test:
+    docker:
+      - image: cimg/node:16.13
+    working_directory: ~/starknet-bridge-relayer/
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
 
-  #     - run:
-  #         name: Source env
-  #         command: cp example.env .env
+      - run:
+          name: Source env
+          command: cp example.env .env
 
-  #     - run:
-  #         name: Generate solidity types
-  #         command: yarn typechain
+      - run:
+          name: Generate solidity types
+          command: yarn typechain
 
-  #     - run:
-  #         name: Run unit tests
-  #         command: yarn test
+      - run:
+          name: Run unit tests
+          command: yarn test
 
   e2e-test:
     docker:
@@ -44,6 +44,9 @@ jobs:
           command: docker compose version
       - setup_remote_docker
       - run:
+          name: build packages and generate typechain
+          command: yarn typechain && cd e2e/starknet-core/ && yarn
+      - run:
           name: build docker compose
           command: cd e2e && make e2e-build
       - run:
@@ -51,13 +54,10 @@ jobs:
           command: cd e2e && make e2e-up && sleep 10
       - run:
           name: start docker compose
-          command: cd e2e && make e2e-setup && sleep 5
-      - run:
-          name: Generate typechain
-          command: yarn typechain
+          command: cd e2e && make e2e-setup && sleep 15
       - run:
           name: Run e2e tests
-          command: cd e2e && make e2e-test
+          command: docker exec e2e-relayer-test-1 yarn test:e2e
       - run:
           name: Stop containers
           command: cd e2e && make e2e-down
@@ -66,7 +66,8 @@ jobs:
 workflows:
   tests:
     jobs:
-      # - unittest-test
-      - e2e-test
-          # requires:
-          #     - unittest-test
+      - unittest-test
+      - e2e-test:
+          requires:
+              - unittest-test
+      # - release
