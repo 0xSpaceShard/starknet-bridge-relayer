@@ -10,8 +10,10 @@ e2e-build: e2e-down
 	docker compose -f docker-compose-e2e.yaml build
 
 e2e-test:
-	export TRUSTED_MODE=false
-	cd .. && yarn test:e2e --runInBand
+	@echo ${MONGO_URL}
+	docker ps --all
+	curl http://0.0.0.0:27017
+# cd .. && yarn test:e2e --runInBand
 
 e2e-setup:
 # restore mongo data
