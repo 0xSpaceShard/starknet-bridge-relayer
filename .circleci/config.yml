@@ -61,7 +61,21 @@ jobs:
       - run:
           name: Stop containers
           command: cd e2e && make e2e-down
-  # release:
+  build:
+    steps:
+      - checkout
+      - setup_remote_docker
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Docker Build image
+          command: docker build . -t spaceshard/stargate-bridge-relayer:latest
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run:
+          name: Docker Push
+          command: docker push spaceshard/stargate-bridge-relayer:latest
 
 workflows:
   tests:
@@ -70,4 +84,11 @@ workflows:
       - e2e-test:
           requires:
               - unittest-test
-      # - release
+      - build:
+          requires:
+              - unittest-test
+          filters:
+            branches:
+              only:
+                - develop
+                - main
