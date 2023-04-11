@@ -1,4 +1,4 @@
-FROM node:18-alpine as development
+FROM node:18 as development
 
 WORKDIR /app
 
@@ -20,8 +20,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY --from=building /app/dist ./dist
-COPY --from=building /app/node_modules ./node_modules
+COPY --from=development /app/dist ./dist
+COPY --from=development /app/node_modules ./node_modules
 COPY ./package.json ./
 
 USER node
