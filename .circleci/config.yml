@@ -1,0 +1,96 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@4.7
+
+jobs:
+  unittest-test:
+    docker:
+      - image: cimg/node:16.13
+    working_directory: ~/starknet-bridge-relayer/
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+
+      - run:
+          name: Source env
+          command: cp example.env .env
+
+      - run:
+          name: Generate solidity types
+          command: yarn typechain
+
+      - run:
+          name: Run unit tests
+          command: yarn test
+
+  e2e-test:
+    docker:
+      - image: cimg/node:16.13
+
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Install docker compose
+          command: |
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -SL https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      - run:
+          name: Test the docker compose installation 
+          command: docker compose version
+      - setup_remote_docker
+      - run:
+          name: build packages and generate typechain
+          command: yarn typechain && cd e2e/starknet-core/ && yarn
+      - run:
+          name: build docker compose
+          command: cd e2e && make e2e-build
+      - run:
+          name: start docker compose
+          command: cd e2e && make e2e-up && sleep 10
+      - run:
+          name: start docker compose
+          command: cd e2e && make e2e-setup && sleep 15
+      - run:
+          name: Run e2e tests
+          command: docker exec e2e-relayer-test-1 yarn test:e2e
+      - run:
+          name: Stop containers
+          command: cd e2e && make e2e-down
+  build:
+    docker:
+      - image: cimg/node:16.13
+    steps:
+      - checkout
+      - setup_remote_docker
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Docker Build image
+          command: docker build . -t shardlabs/stargate-bridge-relayer:latest
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run:
+          name: Docker Push
+          command: docker push shardlabs/stargate-bridge-relayer:latest
+
+workflows:
+  tests:
+    jobs:
+      - unittest-test
+      - e2e-test:
+          requires:
+              - unittest-test
+      # - build:
+      #     requires:
+      #         - unittest-test
+      #     filters:
+      #       branches:
+      #         only:
+      #           - develop
+      #           - main
