@@ -93,7 +93,7 @@ jobs:
           command: bash .circleci/deploy.sh
 
 workflows:
-  tests:
+  tests-and-deployment:
     jobs:
       - unittest-test
       - e2e-test:
@@ -115,4 +115,3 @@ workflows:
             branches:
               only:
                 - develop
-                - pipeline_deploy
