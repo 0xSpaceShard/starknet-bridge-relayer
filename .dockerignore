@@ -11,3 +11,5 @@ docker-compose-dev.yaml
 example.env
 Makefile
 README.md
+docker-compose.yaml
+Dockerfile

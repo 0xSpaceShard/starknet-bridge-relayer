@@ -10,6 +10,9 @@ COPY ./tsconfig*.json ./
 
 COPY . .
 
+RUN yarn --cwd e2e/starknet-core/
+RUN yarn typechain
+
 RUN yarn run build
 
 ################
@@ -20,9 +23,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY --from=development /app/dist ./dist
-COPY --from=development /app/node_modules ./node_modules
-COPY ./package.json ./
+COPY --from=development /app/dist/src /app/dist
+COPY --from=development /app/node_modules /app/node_modules
+COPY ./package.json /app/
 
 USER node
 
