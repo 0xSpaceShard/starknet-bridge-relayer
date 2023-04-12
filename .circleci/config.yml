@@ -3,6 +3,10 @@ version: 2.1
 orbs:
   node: circleci/node@4.7
 
+requires-machine-node: &requires-machine-node
+  machine:
+    image: ubuntu-2004:202010-01
+
 jobs:
   unittest-test:
     docker:
@@ -53,7 +57,7 @@ jobs:
           name: start docker compose
           command: cd e2e && make e2e-up && sleep 10
       - run:
-          name: start docker compose
+          name: setup docker compose
           command: cd e2e && make e2e-setup && sleep 15
       - run:
           name: Run e2e tests
@@ -61,6 +65,7 @@ jobs:
       - run:
           name: Stop containers
           command: cd e2e && make e2e-down
+
   build:
     docker:
       - image: cimg/node:16.13
@@ -79,6 +84,14 @@ jobs:
           name: Docker Push
           command: docker push shardlabs/stargate-bridge-relayer:latest
 
+  deploy:
+    <<: *requires-machine-node
+    steps:
+      - checkout
+      - run:
+          name: Deploy latest through nested SSH 
+          command: bash .circleci/deploy.sh
+
 workflows:
   tests:
     jobs:
@@ -86,11 +99,20 @@ workflows:
       - e2e-test:
           requires:
               - unittest-test
-      # - build:
-      #     requires:
-      #         - unittest-test
-      #     filters:
-      #       branches:
-      #         only:
-      #           - develop
-      #           - main
+      - build:
+          requires:
+              - unittest-test
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+      - deploy:
+          requires:
+              - unittest-test
+              - e2e-test
+          filters:
+            branches:
+              only:
+                - develop
+                - pipeline_deploy
