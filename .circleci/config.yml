@@ -84,13 +84,16 @@ jobs:
           pkg-manager: yarn
       - run:
           name: Docker Build image
-          command: docker build . -t shardlabs/stargate-bridge-relayer:latest
+          command: docker build . -t shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH
       - run:
-          name: Docker Login
-          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
-      - run:
-          name: Docker Push
-          command: docker push shardlabs/stargate-bridge-relayer:latest
+          name: Docker Push image
+          command: |
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              docker tag shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH shardlabs/stargate-bridge-relayer:latest
+              docker push shardlabs/stargate-bridge-relayer:latest
+            fi
+            docker push shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH
 
   deploy-main:
     <<: 
@@ -117,6 +120,7 @@ workflows:
       - build:
           requires:
               - unittest-test
+              - e2e-test
           filters:
             branches:
               only:
@@ -128,6 +132,7 @@ workflows:
           requires:
               - unittest-test
               - e2e-test
+              - build
           filters:
             branches:
               only:
@@ -137,6 +142,7 @@ workflows:
           requires:
               - unittest-test
               - e2e-test
+              - build
           filters:
             branches:
               only:
@@ -146,6 +152,7 @@ workflows:
           requires:
               - unittest-test
               - e2e-test
+              - build
           filters:
             branches:
               only:
