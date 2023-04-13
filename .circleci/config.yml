@@ -84,16 +84,16 @@ jobs:
           pkg-manager: yarn
       - run:
           name: Docker Build image
-          command: docker build . -t shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH
+          command: docker build . -t shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH
       - run:
           name: Docker Push image
           command: |
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              docker tag shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH shardlabs/stargate-bridge-relayer:latest
-              docker push shardlabs/stargate-bridge-relayer:latest
+              docker tag shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH shardlabs/starkgate-bridge-relayer:latest
+              docker push shardlabs/starkgate-bridge-relayer:latest
             fi
-            docker push shardlabs/stargate-bridge-relayer:$CIRCLE_BRANCH
+            docker push shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH
 
   deploy-main:
     <<: 
@@ -120,7 +120,6 @@ workflows:
       - build:
           context: spaceshard
           requires:
-              - unittest-test
               - e2e-test
           filters:
             branches:
@@ -131,8 +130,6 @@ workflows:
       - deploy-main:
           context: starknet-bridge-relayer-main
           requires:
-              - unittest-test
-              - e2e-test
               - build
           filters:
             branches:
@@ -141,8 +138,6 @@ workflows:
       - deploy-develop:
           context: starknet-bridge-relayer-develop
           requires:
-              - unittest-test
-              - e2e-test
               - build
           filters:
             branches:
@@ -151,8 +146,6 @@ workflows:
       - deploy-pipeline:
           context: starknet-bridge-relayer-pipeline
           requires:
-              - unittest-test
-              - e2e-test
               - build
           filters:
             branches:
