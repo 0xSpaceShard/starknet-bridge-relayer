@@ -1,11 +1,19 @@
 version: 2.1
 
-orbs:
-  node: circleci/node@4.7
-
-requires-machine-node: &requires-machine-node
+default-machine-node: &default-machine-node
   machine:
     image: ubuntu-2004:202010-01
+
+
+default-deploy-steps: &default-deploy-steps
+  steps:
+    - checkout
+    - run:
+        name: Deploy latest through nested SSH 
+        command: bash .circleci/deploy.sh
+
+orbs:
+  node: circleci/node@4.7
 
 jobs:
   unittest-test:
@@ -84,16 +92,23 @@ jobs:
           name: Docker Push
           command: docker push shardlabs/stargate-bridge-relayer:latest
 
-  deploy:
-    <<: *requires-machine-node
-    steps:
-      - checkout
-      - run:
-          name: Deploy latest through nested SSH 
-          command: bash .circleci/deploy.sh
+  deploy-main:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
+
+  deploy-develop:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
+
+  deploy-pipeline:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
 
 workflows:
-  tests-and-deployment:
+  test-build-deploy:
     jobs:
       - unittest-test
       - e2e-test:
@@ -105,9 +120,20 @@ workflows:
           filters:
             branches:
               only:
-                - develop
                 - main
-      - deploy:
+                - develop
+                - pipeline
+      - deploy-main:
+          context: starknet-bridge-relayer-main
+          requires:
+              - unittest-test
+              - e2e-test
+          filters:
+            branches:
+              only:
+                - main
+      - deploy-develop:
+          context: starknet-bridge-relayer-develop
           requires:
               - unittest-test
               - e2e-test
@@ -115,3 +141,12 @@ workflows:
             branches:
               only:
                 - develop
+      - deploy-pipeline:
+          context: starknet-bridge-relayer-pipeline
+          requires:
+              - unittest-test
+              - e2e-test
+          filters:
+            branches:
+              only:
+                - pipeline
