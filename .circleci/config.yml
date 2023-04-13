@@ -119,9 +119,9 @@ workflows:
               - unittest-test
       - build:
           context: spaceshard
-          # requires:
-          #     - unittest-test
-          #     - e2e-test
+          requires:
+              - unittest-test
+              - e2e-test
           filters:
             branches:
               only:

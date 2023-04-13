@@ -3,17 +3,19 @@ version: '3.7'
 services:
   mongo:
     image: mongo:4.4
+    container_name: starkgate-bridge-mongo
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
-      - 27017:27017
+      - ${MONGO_PORT}:27017
     volumes:
       - mongo-data:/data/db
 
   indexer:
     image: shardlabs/starkgate-bridge-indexer:latest
+    container_name: starkgate-bridge-indexer
     restart: always
     environment:
       SERVER_URL: ${SERVER_URL}
@@ -32,6 +34,7 @@ services:
 
   relayer:
     image: shardlabs/starkgate-bridge-relayer:latest
+    container_name: starkgate-bridge-relayer
     restart: always
     environment:
       RELAYER_PORT: ${RELAYER_PORT}
@@ -57,5 +60,6 @@ services:
     depends_on:
       - mongo
       - indexer
+
 volumes:
   mongo-data:
