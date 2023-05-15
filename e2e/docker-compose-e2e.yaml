@@ -1,0 +1,67 @@
+version: '3.7'
+
+services:
+  mongo:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017
+
+  indexer:
+    image: shardastronaut/stargate-bridge-indexer:latest
+    restart: always
+    environment:
+      MONGO_URL: ${MONGO_URL}
+      NETWORK_ID: ${NETWORK_ID}
+      FIRST_BLOCK: ${FIRST_BLOCK}
+      LOGLEVEL: "${LOG_LEVEL}"
+      RECORD_LOGS: ""
+      GRAPHQL_URL: ${GRAPHQL_URL}
+      GRAPHQL_PORT: ${GRAPHQL_PORT}
+      BUILD_ENV: ${BUILD_ENV}
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongo
+    entrypoint: ['/bin/bash', '-c', 'poetry run indexer graphql-start']
+
+  relayer-test:
+    build:
+      context: ..
+      target: development
+    restart: always
+    environment:
+      RELAYER_PORT: ${RELAYER_PORT}
+      GRAPHQL_URL: ${GRAPHQL_URL}
+      GRAPHQL_PORT: ${GRAPHQL_PORT}
+      NETWORK_ID: ${NETWORK_ID}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      MONGO_URL: ${MONGO_URL}
+      MONGO_INITDB_NAME: ${MONGO_INITDB_NAME}
+      INFURA_RPC_URL: ${INFURA_RPC_URL}
+      ALCHEMY_RPC_URL: ${ALCHEMY_RPC_URL}
+      FIRST_BLOCK: ${FIRST_BLOCK}
+      INDEXER_URL: ${INDEXER_URL}
+      RELAYER_L2_ADDRESS: ${RELAYER_L2_ADDRESS}
+      RPC_URL: ${RPC_URL}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+    command: ['/bin/bash', '-c', 'sleep 2000']
+    depends_on:
+      - mongo
+      - hardhat
+      - indexer
+    # volumes:
+    #   - ..:/app
+    #   - /app/node_modules
+
+  hardhat:
+    build:
+      context: ./starknet-core
+    restart: always
+    environment:
+      RPC_URL: ${RPC_URL}
+      NETWORK_ID: ${NETWORK_ID}
+    ports:
+      - 8545:8545
+    entrypoint: ['/bin/bash', '-c', 'scripts/start.sh']

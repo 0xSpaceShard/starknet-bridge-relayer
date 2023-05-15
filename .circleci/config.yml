@@ -1,0 +1,153 @@
+version: 2.1
+
+default-machine-node: &default-machine-node
+  machine:
+    image: ubuntu-2004:202010-01
+
+
+default-deploy-steps: &default-deploy-steps
+  steps:
+    - checkout
+    - run:
+        name: Deploy latest through nested SSH 
+        command: bash .circleci/deploy.sh
+
+orbs:
+  node: circleci/node@4.7
+
+jobs:
+  unittest-test:
+    docker:
+      - image: cimg/node:16.14
+    working_directory: ~/starknet-bridge-relayer/
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+
+      - run:
+          name: Source env
+          command: cp example.env .env
+
+      - run:
+          name: Generate solidity types
+          command: yarn typechain
+
+      - run:
+          name: Run unit tests
+          command: yarn test --detectOpenHandles
+
+  e2e-test:
+    docker:
+      - image: cimg/node:16.14
+
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Install docker compose
+          command: |
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -SL https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      - run:
+          name: Test the docker compose installation 
+          command: docker compose version
+      - setup_remote_docker
+      - run:
+          name: build packages and generate typechain
+          command: yarn typechain && cd e2e/starknet-core/ && yarn
+      - run:
+          name: build docker compose
+          command: cd e2e && make e2e-build
+      - run:
+          name: start docker compose
+          command: cd e2e && make e2e-up && sleep 10
+      - run:
+          name: setup docker compose
+          command: cd e2e && make e2e-setup && sleep 15
+      - run:
+          name: Run e2e tests
+          command: docker exec e2e-relayer-test-1 yarn test:e2e
+      - run:
+          name: Stop containers
+          command: cd e2e && make e2e-down
+
+  build:
+    docker:
+      - image: cimg/node:16.14
+    steps:
+      - checkout
+      - setup_remote_docker
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Docker Build image
+          command: docker build . -t shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH
+      - run:
+          name: Docker Push image
+          command: |
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              docker tag shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH shardlabs/starkgate-bridge-relayer:latest
+              docker push shardlabs/starkgate-bridge-relayer:latest
+            fi
+            docker push shardlabs/starkgate-bridge-relayer:$CIRCLE_BRANCH
+
+  deploy-main:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
+
+  deploy-develop:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
+
+  deploy-pipeline:
+    <<: 
+    - *default-machine-node
+    - *default-deploy-steps
+
+workflows:
+  test-build-deploy:
+    jobs:
+      - unittest-test
+      - e2e-test:
+          requires:
+              - unittest-test
+      - build:
+          context: spaceshard
+          requires:
+              - e2e-test
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - pipeline
+      - deploy-main:
+          context: starknet-bridge-relayer-main
+          requires:
+              - build
+          filters:
+            branches:
+              only:
+                - main
+      - deploy-develop:
+          context: starknet-bridge-relayer-develop
+          requires:
+              - build
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-pipeline:
+          context: starknet-bridge-relayer-pipeline
+          requires:
+              - build
+          filters:
+            branches:
+              only:
+                - pipeline

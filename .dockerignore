@@ -1,0 +1,15 @@
+.github
+.husky
+dist
+node_modules
+test
+.eslintrc.js
+.gitignore
+.prettierrc
+commitlint.config.js
+docker-compose-dev.yaml
+example.env
+Makefile
+README.md
+docker-compose.yaml
+Dockerfile

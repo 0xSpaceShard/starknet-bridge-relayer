@@ -1,0 +1,60 @@
+version: '3.7'
+
+services:
+  mongo:
+    image: mongo:4.4
+    container_name: starkgate-bridge-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - ${MONGO_PORT}:27017
+    volumes:
+      - mongo-data:/data/db
+
+  indexer:
+    image: shardlabs/starkgate-bridge-indexer:latest
+    container_name: starkgate-bridge-indexer
+    restart: always
+    environment:
+      MONGO_URL: ${MONGO_URL}
+      NETWORK_ID: ${NETWORK_ID}
+      FIRST_BLOCK: ${FIRST_BLOCK}
+      LOGLEVEL: "${LOG_LEVEL}"
+      RECORD_LOGS: ""
+      GRAPHQL_URL: ${GRAPHQL_URL}
+      GRAPHQL_PORT: ${GRAPHQL_PORT}
+      BUILD_ENV: ${BUILD_ENV}
+    ports:
+      - ${GRAPHQL_PORT}:${GRAPHQL_PORT}
+    depends_on:
+      - mongo
+
+  relayer:
+    image: shardlabs/starkgate-bridge-relayer:latest
+    container_name: starkgate-bridge-relayer
+    restart: always
+    environment:
+      RELAYER_PORT: ${RELAYER_PORT}
+      GRAPHQL_URL: ${GRAPHQL_URL}
+      GRAPHQL_PORT: ${GRAPHQL_PORT}
+      NETWORK_ID: ${NETWORK_ID}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      MONGO_URL: ${MONGO_URL}
+      MONGO_INITDB_NAME: ${MONGO_INITDB_NAME}
+      INFURA_RPC_URL: ${INFURA_RPC_URL}
+      ALCHEMY_RPC_URL: ${ALCHEMY_RPC_URL}
+      FIRST_BLOCK: ${FIRST_BLOCK}
+      INDEXER_URL: ${INDEXER_URL}
+      RELAYER_L2_ADDRESS: ${RELAYER_L2_ADDRESS}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+    ports:
+      - '${RELAYER_PORT}:${RELAYER_PORT}'
+    depends_on:
+      - mongo
+      - indexer
+
+volumes:
+  mongo-data:
