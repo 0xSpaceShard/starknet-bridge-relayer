@@ -53,6 +53,7 @@ services:
       METRICS_PORT: ${METRICS_PORT}
     ports:
       - '${RELAYER_PORT}:${RELAYER_PORT}'
+      - '${METRICS_PORT}:${METRICS_PORT}'
     depends_on:
       - mongo
       - indexer
